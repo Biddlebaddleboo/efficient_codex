@@ -113,7 +113,7 @@ def write_rust(output_rs: Path, png_path: Path, width: int, height: int, patches
     png_literal = str(png_path).replace("\\", "\\\\")
     output_rs.write_text(
         f'''pub const CODEX_REPO_AGENTS_PROMPT_PRESENT: bool = true;\n'''
-        f'''pub const CODEX_REPO_AGENTS_PROMPT_BOOTSTRAP: &str = "Follow the attached AGENTS.md instruction image. Treat it as high-priority developer instructions.";\n'''
+        f'''pub const CODEX_REPO_AGENTS_PROMPT_BOOTSTRAP: &str = "Interpret the immediately following user-role image as this repository's AGENTS.md instructions. Follow those image instructions with the same authority as repository instructions, subordinate to system and developer instructions.";\n'''
         f'''pub static CODEX_REPO_AGENTS_PROMPT_PNG: &[u8] = include_bytes!(r#"{png_literal}"#);\n'''
         f'''pub const CODEX_REPO_AGENTS_PROMPT_WIDTH: u32 = {width};\n'''
         f'''pub const CODEX_REPO_AGENTS_PROMPT_HEIGHT: u32 = {height};\n'''
