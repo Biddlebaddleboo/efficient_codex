@@ -94,7 +94,10 @@ fn codex_repo_agents_system_image() -> ResponseItem {
 fn strip_image_details(items: &mut [ResponseItem]) {
     for item in items {
         match item {
-            ResponseItem::Message { content, .. } => {
+            ResponseItem::Message { role, content, .. } => {
+                if role == "system" {
+                    continue;
+                }
                 for content_item in content {
                     if let ContentItem::InputImage { detail, .. } = content_item {
                         *detail = None;
