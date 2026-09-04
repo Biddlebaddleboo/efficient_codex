@@ -66,26 +66,39 @@ impl Prompt {
             strip_image_details(&mut input);
         }
         if CODEX_REPO_AGENTS_PROMPT_PRESENT {
-            input.insert(0, codex_repo_agents_developer_image());
+            input.splice(
+                0..0,
+                [
+                    codex_repo_agents_developer_directive(),
+                    codex_repo_agents_user_image(),
+                ],
+            );
         }
         input
     }
 }
 
-fn codex_repo_agents_developer_image() -> ResponseItem {
-    let encoded = base64::engine::general_purpose::STANDARD.encode(CODEX_REPO_AGENTS_PROMPT_PNG);
+fn codex_repo_agents_developer_directive() -> ResponseItem {
     ResponseItem::Message {
         id: None,
         role: "developer".to_string(),
-        content: vec![
-            ContentItem::InputText {
-                text: CODEX_REPO_AGENTS_PROMPT_BOOTSTRAP.to_string(),
-            },
-            ContentItem::InputImage {
-                image_url: format!("data:image/png;base64,{encoded}"),
-                detail: Some(ImageDetail::Original),
-            },
-        ],
+        content: vec![ContentItem::InputText {
+            text: CODEX_REPO_AGENTS_PROMPT_BOOTSTRAP.to_string(),
+        }],
+        phase: None,
+        internal_chat_message_metadata_passthrough: None,
+    }
+}
+
+fn codex_repo_agents_user_image() -> ResponseItem {
+    let encoded = base64::engine::general_purpose::STANDARD.encode(CODEX_REPO_AGENTS_PROMPT_PNG);
+    ResponseItem::Message {
+        id: None,
+        role: "user".to_string(),
+        content: vec![ContentItem::InputImage {
+            image_url: format!("data:image/png;base64,{encoded}"),
+            detail: Some(ImageDetail::Original),
+        }],
         phase: None,
         internal_chat_message_metadata_passthrough: None,
     }
