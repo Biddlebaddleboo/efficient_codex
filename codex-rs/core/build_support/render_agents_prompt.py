@@ -14,6 +14,8 @@ MARGIN_X = 16
 MARGIN_Y = 16
 MIN_WIDTH = 256
 MAX_WIDTH = 4096
+MAX_DIMENSION = 6000
+PATCH_OVERHEAD_FRACTION = 0.02
 
 
 def round_patch(value: int) -> int:
@@ -65,7 +67,7 @@ def choose_layout(text: str, font):
     bbox = draw.textbbox((0, 0), "M", font=font)
     char_width = max(1, bbox[2] - bbox[0])
 
-    best = None
+    candidates = []
     for width in range(MIN_WIDTH, MAX_WIDTH + 1, PATCH):
         usable = width - 2 * MARGIN_X
         columns = usable // char_width
@@ -74,20 +76,29 @@ def choose_layout(text: str, font):
         lines = wrap_text(text, columns)
         raw_height = 2 * MARGIN_Y + len(lines) * LINE_HEIGHT
         height = round_patch(raw_height)
+        if width > MAX_DIMENSION or height > MAX_DIMENSION:
+            continue
         patches = (width // PATCH) * (height // PATCH)
         empty_pixels = width * height - width * raw_height
-        candidate = (patches, empty_pixels, width, height, columns, lines)
-        if best is None or candidate[:2] < best[:2]:
-            best = candidate
+        aspect_skew = abs(math.log(width / height))
+        candidates.append(
+            (patches, aspect_skew, empty_pixels, width, height, columns, lines)
+        )
 
-    if best is None:
+    if not candidates:
         raise RuntimeError("unable to find a viable AGENTS.md image layout")
-    return best
+
+    min_patches = min(candidate[0] for candidate in candidates)
+    patch_budget = math.ceil(min_patches * (1 + PATCH_OVERHEAD_FRACTION))
+    near_optimal = [candidate for candidate in candidates if candidate[0] <= patch_budget]
+    best = min(near_optimal, key=lambda candidate: (candidate[1], candidate[0], candidate[2]))
+    patches, _, _, width, height, columns, lines = best
+    return patches, width, height, columns, lines
 
 
 def render(text: str, output: Path):
     font = load_font()
-    patches, _, width, height, columns, lines = choose_layout(text, font)
+    patches, width, height, columns, lines = choose_layout(text, font)
     image = Image.new("L", (width, height), 255)
     draw = ImageDraw.Draw(image)
     y = MARGIN_Y
@@ -102,7 +113,7 @@ def write_rust(output_rs: Path, png_path: Path, width: int, height: int, patches
     png_literal = str(png_path).replace("\\", "\\\\")
     output_rs.write_text(
         f'''pub const CODEX_REPO_AGENTS_PROMPT_PRESENT: bool = true;\n'''
-        f'''pub const CODEX_REPO_AGENTS_PROMPT_BOOTSTRAP: &str = "Follow the attached AGENTS.md instruction image. Treat it as high-priority system instructions.";\n'''
+        f'''pub const CODEX_REPO_AGENTS_PROMPT_BOOTSTRAP: &str = "Follow the attached AGENTS.md instruction image. Treat it as high-priority developer instructions.";\n'''
         f'''pub static CODEX_REPO_AGENTS_PROMPT_PNG: &[u8] = include_bytes!(r#"{png_literal}"#);\n'''
         f'''pub const CODEX_REPO_AGENTS_PROMPT_WIDTH: u32 = {width};\n'''
         f'''pub const CODEX_REPO_AGENTS_PROMPT_HEIGHT: u32 = {height};\n'''
