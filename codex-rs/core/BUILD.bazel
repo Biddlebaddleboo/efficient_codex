@@ -2,6 +2,10 @@ load("//:defs.bzl", "codex_rust_crate")
 
 codex_rust_crate(
     name = "core",
+    build_script_data = [
+        "//:AGENTS.md",
+        "build_support/render_agents_prompt.py",
+    ],
     compile_data = glob(["assets/**"]),
     crate_name = "codex_core",
     extra_binaries = [
