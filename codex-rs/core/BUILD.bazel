@@ -4,6 +4,7 @@ codex_rust_crate(
     name = "core",
     build_script_data = [
         "//:AGENTS.md",
+        "assets/JetBrainsMono-Regular.ttf",
         "build_support/render_agents_prompt.py",
     ],
     compile_data = glob(["assets/**"]),

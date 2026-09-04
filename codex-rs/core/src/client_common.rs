@@ -1,5 +1,5 @@
-pub use codex_api::ResponseEvent;
 use base64::Engine;
+pub use codex_api::ResponseEvent;
 use codex_protocol::error::Result;
 use codex_protocol::models::BaseInstructions;
 use codex_protocol::models::ContentItem;
@@ -17,6 +17,10 @@ use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 
 include!(concat!(env!("OUT_DIR"), "/codex_repo_agents_prompt.rs"));
+
+pub(crate) fn embedded_global_agents_prompt_present() -> bool {
+    CODEX_REPO_AGENTS_PROMPT_PRESENT
+}
 
 /// API request payload for a single model turn
 #[derive(Debug, Clone)]

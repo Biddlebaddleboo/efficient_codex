@@ -25,8 +25,15 @@ pub(crate) struct AgentsMdSnapshot {
 
 impl AgentsMdState {
     pub(crate) fn new(loaded: Option<&LoadedAgentsMd>) -> Self {
+        let loaded = loaded.and_then(|loaded| {
+            if crate::client_common::embedded_global_agents_prompt_present() {
+                loaded.without_global_instructions()
+            } else {
+                Some(loaded.clone())
+            }
+        });
         Self {
-            instructions: loaded.map(LoadedAgentsMd::contextual_user_fragment),
+            instructions: loaded.map(|loaded| loaded.contextual_user_fragment()),
         }
     }
 }

@@ -340,6 +340,15 @@ impl LoadedAgentsMd {
                 .all(|entry| entry.contents.trim().is_empty())
     }
 
+    /// Returns project-scoped instructions without Codex-home/global instructions.
+    pub(crate) fn without_global_instructions(&self) -> Option<Self> {
+        let project_instructions = Self {
+            user_instructions: None,
+            entries: self.entries.clone(),
+        };
+        (!project_instructions.is_empty()).then_some(project_instructions)
+    }
+
     /// Returns the concatenated model-visible instruction text.
     pub fn text(&self) -> String {
         if self.has_multiple_project_environments() {

@@ -8,10 +8,10 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 PATCH = 32
-FONT_SIZE = 15
-LINE_HEIGHT = 18
-MARGIN_X = 16
-MARGIN_Y = 16
+FONT_SIZE = 14
+LINE_SPACING = 1
+MARGIN_X = 1
+MARGIN_Y = 1
 MIN_WIDTH = 256
 MAX_WIDTH = 4096
 MAX_DIMENSION = 6000
@@ -24,6 +24,8 @@ def round_patch(value: int) -> int:
 
 def load_font():
     candidates = [
+        str(Path(__file__).resolve().parent.parent / "assets" / "JetBrainsMono-Regular.ttf"),
+        "/usr/share/fonts/truetype/jetbrains-mono/JetBrainsMono-Regular.ttf",
         "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
         "/usr/share/fonts/dejavu/DejaVuSansMono.ttf",
         "/System/Library/Fonts/Menlo.ttc",
@@ -66,6 +68,8 @@ def choose_layout(text: str, font):
     draw = ImageDraw.Draw(probe)
     bbox = draw.textbbox((0, 0), "M", font=font)
     char_width = max(1, bbox[2] - bbox[0])
+    glyph_height = max(1, bbox[3] - bbox[1])
+    line_height = glyph_height + LINE_SPACING
 
     candidates = []
     for width in range(MIN_WIDTH, MAX_WIDTH + 1, PATCH):
@@ -74,7 +78,7 @@ def choose_layout(text: str, font):
         if columns < 8:
             continue
         lines = wrap_text(text, columns)
-        raw_height = 2 * MARGIN_Y + len(lines) * LINE_HEIGHT
+        raw_height = 2 * MARGIN_Y + len(lines) * line_height
         height = round_patch(raw_height)
         if width > MAX_DIMENSION or height > MAX_DIMENSION:
             continue
@@ -93,18 +97,19 @@ def choose_layout(text: str, font):
     near_optimal = [candidate for candidate in candidates if candidate[0] <= patch_budget]
     best = min(near_optimal, key=lambda candidate: (candidate[1], candidate[0], candidate[2]))
     patches, _, _, width, height, columns, lines = best
-    return patches, width, height, columns, lines
+    return patches, width, height, columns, lines, line_height, bbox
 
 
 def render(text: str, output: Path):
     font = load_font()
-    patches, width, height, columns, lines = choose_layout(text, font)
+    patches, width, height, columns, lines, line_height, bbox = choose_layout(text, font)
     image = Image.new("L", (width, height), 255)
     draw = ImageDraw.Draw(image)
-    y = MARGIN_Y
+    x = MARGIN_X - bbox[0]
+    y = MARGIN_Y - bbox[1]
     for line in lines:
-        draw.text((MARGIN_X, y), line, fill=0, font=font)
-        y += LINE_HEIGHT
+        draw.text((x, y), line, fill=0, font=font)
+        y += line_height
     image.save(output, format="PNG", optimize=True)
     return width, height, patches, columns, len(lines)
 
@@ -156,7 +161,7 @@ def main():
     write_rust(output_rs, output_png, width, height, patches)
     print(
         f"AGENTS.md -> {width}x{height}px, {patches} 32x32 patches, "
-        f"15px font, {columns} columns, {line_count} rendered lines"
+        f"{FONT_SIZE}px font, {columns} columns, {line_count} rendered lines"
     )
 
 
