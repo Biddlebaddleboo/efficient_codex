@@ -62,21 +62,21 @@ impl Prompt {
         use_responses_lite: bool,
     ) -> Vec<ResponseItem> {
         let mut input = self.input.clone();
-        if CODEX_REPO_AGENTS_PROMPT_PRESENT {
-            input.insert(0, codex_repo_agents_system_image());
-        }
         if use_responses_lite {
             strip_image_details(&mut input);
+        }
+        if CODEX_REPO_AGENTS_PROMPT_PRESENT {
+            input.insert(0, codex_repo_agents_developer_image());
         }
         input
     }
 }
 
-fn codex_repo_agents_system_image() -> ResponseItem {
+fn codex_repo_agents_developer_image() -> ResponseItem {
     let encoded = base64::engine::general_purpose::STANDARD.encode(CODEX_REPO_AGENTS_PROMPT_PNG);
     ResponseItem::Message {
         id: None,
-        role: "system".to_string(),
+        role: "developer".to_string(),
         content: vec![
             ContentItem::InputText {
                 text: CODEX_REPO_AGENTS_PROMPT_BOOTSTRAP.to_string(),
