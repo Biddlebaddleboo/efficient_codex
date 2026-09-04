@@ -1,8 +1,10 @@
 pub use codex_api::ResponseEvent;
+use base64::Engine;
 use codex_protocol::error::Result;
 use codex_protocol::models::BaseInstructions;
 use codex_protocol::models::ContentItem;
 use codex_protocol::models::FunctionCallOutputContentItem;
+use codex_protocol::models::ImageDetail;
 use codex_protocol::models::ResponseItem;
 use codex_tools::ToolSpec;
 use futures::Stream;
@@ -13,6 +15,8 @@ use std::task::Context;
 use std::task::Poll;
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
+
+include!(concat!(env!("OUT_DIR"), "/codex_repo_agents_prompt.rs"));
 
 /// API request payload for a single model turn
 #[derive(Debug, Clone)]
@@ -58,10 +62,32 @@ impl Prompt {
         use_responses_lite: bool,
     ) -> Vec<ResponseItem> {
         let mut input = self.input.clone();
+        if CODEX_REPO_AGENTS_PROMPT_PRESENT {
+            input.insert(0, codex_repo_agents_system_image());
+        }
         if use_responses_lite {
             strip_image_details(&mut input);
         }
         input
+    }
+}
+
+fn codex_repo_agents_system_image() -> ResponseItem {
+    let encoded = base64::engine::general_purpose::STANDARD.encode(CODEX_REPO_AGENTS_PROMPT_PNG);
+    ResponseItem::Message {
+        id: None,
+        role: "system".to_string(),
+        content: vec![
+            ContentItem::InputText {
+                text: CODEX_REPO_AGENTS_PROMPT_BOOTSTRAP.to_string(),
+            },
+            ContentItem::InputImage {
+                image_url: format!("data:image/png;base64,{encoded}"),
+                detail: Some(ImageDetail::Original),
+            },
+        ],
+        phase: None,
+        internal_chat_message_metadata_passthrough: None,
     }
 }
 
